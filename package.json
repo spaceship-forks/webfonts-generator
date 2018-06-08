@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "handlebars": "^4.0.5",
+    "lodash": "^4.17.10",
     "mkdirp": "^0.5.0",
     "q": "^1.1.2",
     "svg2ttf": "^4.0.0",
@@ -35,7 +36,6 @@
     "ttf2eot": "^2.0.0",
     "ttf2woff": "^2.0.1",
     "ttf2woff2": "^2.0.3",
-    "underscore": "^1.7.0",
     "url-join": "^1.1.0"
   },
   "devDependencies": {

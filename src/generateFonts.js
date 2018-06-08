@@ -1,5 +1,5 @@
 var fs = require('fs')
-var _ = require('underscore')
+var _ = require('lodash')
 var Q = require('q')
 
 var svgicons2svgfont = require('svgicons2svgfont')
@@ -128,7 +128,7 @@ var generateFonts = function(options) {
 	}
 
 	return Q.all(_.values(genTasks)).then(function(results) {
-		return _.object(_.keys(genTasks), results)
+		return _.zipObject(_.keys(genTasks), results)
 	})
 }
 
