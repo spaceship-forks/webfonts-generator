@@ -3,7 +3,7 @@ var path = require('path')
 var mkdirp = require('mkdirp')
 var _ = require('lodash/fp')
 var glob = require('glob')
-var hash = require('./hash.js')
+var checksum = require('./checksum.js')
 var utils = require('./utils.js')
 
 var generateFonts = require('./generateFonts')
@@ -97,13 +97,18 @@ var webfont = function(userOptions, done) {
 	}
 
 	options.files = prepareFiles(options.files)
-
 	console.log(`${options.files.length} icons found`)
 
-	options.checksum = hash.calculate(options.files)
+	var prevChecksum = checksum.read(options)
+	options.checksum = checksum.calculate(options.files)
 
-	// Did change?
-	// Proceed or Stop here
+	if (prevChecksum === null) {
+		console.log(`checksum not found`)
+	}
+
+	if (prevChecksum === options.checksum) {
+		return console.log(`checksums match, aborting`)
+	}
 
 	options.names = prepareNames(options.rename, options.files)
 
@@ -149,6 +154,9 @@ function writeResult(fonts, options) {
 		var filepath = path.join(options.dest, utils.fileName(options, _.first(pair)))
 		writeFile(filepath, _.last(pair))
 	}, fonts)
+
+	checksum.write(options, options.checksum)
+	console.log(`new checksum ${options.checksum}`);
 
 	if (options.css) {
 		var css = renderCss(options)
