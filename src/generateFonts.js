@@ -23,9 +23,7 @@ var generators = {
 	svg: {
 		fn: function(options, done) {
 			var font = new Buffer(0)
-			var svgOptions = _.pick(options,
-				'fontName', 'fontHeight', 'descent', 'normalize', 'round'
-			)
+			var svgOptions = _.pick(options, ['fontName', 'fontHeight', 'descent', 'normalize', 'round'])
 
 			if (options.formatOptions['svg']) {
 				svgOptions = _.extend(svgOptions, options.formatOptions['svg'])
@@ -45,14 +43,17 @@ var generators = {
 				var glyph = fs.createReadStream(file)
 				var name = options.names[idx]
 				var unicode = String.fromCharCode(options.codepoints[name])
-                var ligature = ''
-                for(var i=0;i<name.length;i++) {
-                    ligature+=String.fromCharCode(name.charCodeAt(i))
-                }
+				var ligature = ''
+
+        for (var i=0; i < name.length; i++) {
+        	ligature += String.fromCharCode(name.charCodeAt(i))
+        }
+
 				glyph.metadata = {
 					name: name,
-					unicode: [unicode,ligature]
+					unicode: [unicode, ligature]
 				}
+
 				fontStream.write(glyph)
 			})
 
@@ -97,9 +98,6 @@ var generators = {
 	}
 }
 
-/**
- * @returns Promise
- */
 var generateFonts = function(options) {
 	var genTasks = {}
 
@@ -113,10 +111,13 @@ var generateFonts = function(options) {
 
 		var gen = generators[type]
 		var depsTasks = _.map(gen.deps, makeGenTask)
-		var task = Q.all(depsTasks).then(function(depsFonts) {
-			var args = [options].concat(depsFonts)
-			return Q.nfapply(gen.fn, args)
-		})
+		var task = Q
+			.all(depsTasks)
+			.then(function(depsFonts) {
+				var args = [options].concat(depsFonts)
+				return Q.nfapply(gen.fn, args)
+			})
+
 		genTasks[type] = task
 		return task
 	}
@@ -127,9 +128,11 @@ var generateFonts = function(options) {
 		makeGenTask(type)
 	}
 
-	return Q.all(_.values(genTasks)).then(function(results) {
-		return _.zipObject(_.keys(genTasks), results)
-	})
+	return Q
+		.all(_.values(genTasks))
+		.then(function(results) {
+			return _.zip(_.keys(genTasks), results)
+		})
 }
 
 module.exports = generateFonts

@@ -55,7 +55,7 @@ Type: `function(error, result)`
 
 *required*
 
-Type: `array.<string>`
+Type: `array.<string>` or `glob`
 
 List of SVG files.
 

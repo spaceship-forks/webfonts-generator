@@ -1,7 +1,10 @@
 var fs = require('fs')
 var path = require('path')
 var mkdirp = require('mkdirp')
-var _ = require('lodash')
+var _ = require('lodash/fp')
+var glob = require('glob')
+var hash = require('./hash.js')
+var utils = require('./utils.js')
 
 var generateFonts = require('./generateFonts')
 var renderCss = require('./renderCss')
@@ -40,78 +43,124 @@ var DEFAULT_OPTIONS = {
 	normalize: true
 }
 
-var webfont = function(options, done) {
 
-	options = _.extend({}, DEFAULT_OPTIONS, options)
+// ensureArray :: a -> Array
+var ensureArray = function(files) {
+	return _.isString(files)
+		? [files]
+		: files
+}
 
-	if (options.dest === undefined) return done(new Error('"options.dest" is undefined.'))
-	if (options.files === undefined) return done(new Error('"options.files" is undefined.'))
-	if (!options.files.length) return done(new Error('"options.files" is empty.'))
 
-	// We modify codepoints later, so we can't use same object from default options.
-	if (options.codepoints === undefined) options.codepoints = {}
+// parseGlob :: String -> Array
+var parseGlob = function(acc, item) {
+	return _.concat(acc, glob.sync(item))
+}
 
-	options.names = _.map(options.files, options.rename)
+
+// prepareFiles :: Array -> Array
+var prepareFiles = _.compose(
+	_.reduce(parseGlob, []),
+	ensureArray
+)
+
+
+// prepareNames :: Array -> Array
+var prepareNames = function(renameFn, files) {
+	return _.compose(
+		_.uniq,
+		_.map(renameFn)
+	)(files)
+}
+
+
+// prepareCodepoints :: (Int, Array) -> Object
+var prepareCodepoints = function(startCodepoint, names) {
+	return _.compose(
+		_.fromPairs,
+		_.reduce(function(acc, name) {
+			return _.concat(acc, [[name, startCodepoint + acc.length]])
+		}, [])
+	)(names)
+}
+
+
+var webfont = function(userOptions, done) {
+	var options = _.defaults(DEFAULT_OPTIONS, userOptions)
+
+	if (options.dest === undefined) {
+		return done(new Error('"options.dest" is undefined.'))
+	}
+
+	if (_.isUndefined(options.files)) {
+		 return done(new Error('"options.files" is undefined.'))
+	}
+
+	options.files = prepareFiles(options.files)
+
+	console.log(`${options.files.length} icons found`)
+
+	options.checksum = hash.calculate(options.files)
+
+	// Did change?
+	// Proceed or Stop here
+
+	options.names = prepareNames(options.rename, options.files)
+
 	if (options.cssDest === undefined) {
 		options.cssDest = path.join(options.dest, options.fontName + '.css')
 	}
+
 	if (options.htmlDest === undefined) {
 		options.htmlDest = path.join(options.dest, options.fontName + '.html')
 	}
 
+	options.templateOptions = _.defaults(DEFAULT_TEMPLATE_OPTIONS, options.templateOptions)
 
-	options.templateOptions = _.extend({}, DEFAULT_TEMPLATE_OPTIONS, options.templateOptions)
+	options.codepoints = prepareCodepoints(options.startCodepoint, options.names);
 
-	// Generates codepoints starting from `options.startCodepoint`,
-	// skipping codepoints explicitly specified in `options.codepoints`
-	var currentCodepoint = options.startCodepoint
-	var codepointsValues = _.values(options.codepoints)
-	function getNextCodepoint() {
-		while (_.includes(codepointsValues, currentCodepoint)) {
-			currentCodepoint++
-		}
-		var res = currentCodepoint
-		currentCodepoint++
-		return res
-	}
-	_.each(options.names, function(name) {
-		if (!options.codepoints[name]) {
-			options.codepoints[name] = getNextCodepoint()
-		}
-	})
 
 	// TODO output
 	generateFonts(options)
 		.then(function(result) {
-			if (options.writeFiles) writeResult(result, options)
+			if (options.writeFiles) {
+				writeResult(result, options)
+			}
 
 			result.generateCss = function(urls) {
 				return renderCss(options, urls)
 			}
+
 			done(null, result)
 		})
 		.catch(function(err) { done(err) })
 }
 
-function writeFile(content, dest) {
+
+// writeFile :: String -> String -> ()
+function writeFile(dest, content) {
 	mkdirp.sync(path.dirname(dest))
 	fs.writeFileSync(dest, content)
 }
 
+
 function writeResult(fonts, options) {
-	_.each(fonts, function(content, type) {
-		var filepath = path.join(options.dest, options.fontName + '.' + type)
-		writeFile(content, filepath)
-	})
+	_.each(function(pair) {
+		var filepath = path.join(options.dest, utils.fileName(options, _.first(pair)))
+		writeFile(filepath, _.last(pair))
+	}, fonts)
+
 	if (options.css) {
 		var css = renderCss(options)
-		writeFile(css, options.cssDest)
+		writeFile(options.cssDest, css)
 	}
+
 	if (options.html) {
 		var html = renderHtml(options)
-		writeFile(html, options.htmlDest)
+		writeFile(options.htmlDest, html)
 	}
 }
+
 
 webfont.templates = TEMPLATES
 
