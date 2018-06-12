@@ -85,6 +85,17 @@ var prepareCodepoints = function(startCodepoint, names) {
 }
 
 
+// cleanDestDirectory :: Object -> ()
+var cleanDestDirectory = function(options) {
+	var files = path.join(options.dest, '*.{' + _.join(',', options.order) + '}')
+
+	_.compose(
+		_.map(fs.unlinkSync),
+		glob.sync
+	)(files)
+}
+
+
 var webfont = function(userOptions, done) {
 	var options = _.defaults(DEFAULT_OPTIONS, userOptions)
 
@@ -109,6 +120,8 @@ var webfont = function(userOptions, done) {
 	if (prevChecksum === options.checksum) {
 		return console.log(`checksums match, aborting`)
 	}
+
+	cleanDestDirectory(options)
 
 	options.names = prepareNames(options.rename, options.files)
 
