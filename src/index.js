@@ -40,7 +40,8 @@ var DEFAULT_OPTIONS = {
 	 * http://en.wikipedia.org/wiki/Private_Use_(Unicode)
 	 */
 	startCodepoint: 0xF101,
-	normalize: true
+	normalize: true,
+	force: false
 }
 
 
@@ -104,7 +105,7 @@ var webfont = function(userOptions, done) {
 	}
 
 	if (_.isUndefined(options.files)) {
-		 return done(new Error('"options.files" is undefined.'))
+		return done(new Error('"options.files" is undefined.'))
 	}
 
 	options.files = prepareFiles(options.files)
@@ -113,12 +114,20 @@ var webfont = function(userOptions, done) {
 	var prevChecksum = checksum.read(options)
 	options.checksum = checksum.calculate(options.files)
 
-	if (prevChecksum === null) {
-		console.log(`checksum not found`)
-	}
+	if (options.force) {
 
-	if (prevChecksum === options.checksum) {
-		return console.log(`checksums match, aborting`)
+		console.log(`skipped checksum verification (forced)`)
+
+	} else {
+
+		if (prevChecksum === null) {
+			console.log(`checksum not found`)
+		}
+
+		if (prevChecksum === options.checksum) {
+			return console.log(`checksums match, aborting`)
+		}
+
 	}
 
 	cleanDestDirectory(options)
