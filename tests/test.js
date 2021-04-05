@@ -8,6 +8,7 @@ var Q = require('q')
 var readChunk = require('read-chunk')
 var getFileType = require('file-type')
 
+var checksum = require('../src/checksum.js')
 var webfontsGenerator = require('../src/index')
 
 describe('webfont', function() {
@@ -42,7 +43,8 @@ describe('webfont', function() {
 			var destFiles = fs.readdirSync(DEST)
 			for (var i in TYPES) {
 				var type = TYPES[i]
-				var filename = FONT_NAME + '.' + type
+				var currentChecksum = checksum.read(OPTIONS);
+				var filename = `${FONT_NAME}.${currentChecksum}.${type}`
 				var filepath = path.join(DEST, filename)
 				assert(destFiles.indexOf(filename) !== -1, type + ' file exists')
 				assert(fs.statSync(filepath).size > 0, type + ' file is not empty')
@@ -113,7 +115,9 @@ describe('webfont', function() {
 		webfontsGenerator(options, function(err) {
 			if (err) return done(err)
 
-			var svg = fs.readFileSync(path.join(DEST, FONT_NAME + '.svg'), 'utf8')
+			var currentChecksum = checksum.read(OPTIONS);
+			var svgFilename = `${FONT_NAME}.${currentChecksum}.svg`;
+			var svg = fs.readFileSync(path.join(DEST, svgFilename), 'utf8')
 
 			function codepointInSvg(cp) {
 				return svg.indexOf(cp.toString(16).toUpperCase()) !== -1

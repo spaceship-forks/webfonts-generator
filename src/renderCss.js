@@ -26,9 +26,9 @@ var makeSrc = function(options, urls) {
 	}
 
 	// Order used types according to 'options.order'.
-	var orderedTypes = _.filter(options.order, function(type) {
+	var orderedTypes = _.filter(function(type) {
 		return options.types.indexOf(type) !== -1
-	})
+	}, options.order)
 
 	var src = _.map(function(type) {
 		return templates[type]({
