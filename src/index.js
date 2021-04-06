@@ -75,19 +75,21 @@ var prepareNames = function(renameFn, files) {
 }
 
 
-// prepareCodepoints :: (Object) -> Object
-var prepareCodepoints = function(options) {
-	return _.compose(
-		_.assign(options.codepoints),
+// prepareCodepoints :: Object -> Object
+var prepareCodepoints = function({ startCodepoint, codepoints, names }) {
+	var codepointsKeys = _.keys(codepoints || {});
+	var newCodepoints = _.compose(
 		_.fromPairs,
-		_.reduce(function(acc, name) {
-			if (options.codepoints && options.codepoints[name]) {
-				return acc;
-			}
+		_.reduce(
+			function(acc, name) {
+				return _.concat(acc, [[name, startCodepoint + acc.length]]);
+			},
+			[]
+		),
+		_.filter(function(name) { return codepointsKeys.indexOf(name) === -1 })
+	)(names);
 
-			return _.concat(acc, [[name, options.startCodepoint + acc.length]]);
-		}, [])
-	)(options.names)
+	return { ...codepoints, ...newCodepoints };
 }
 
 
