@@ -75,14 +75,21 @@ var prepareNames = function(renameFn, files) {
 }
 
 
-// prepareCodepoints :: (Int, Array) -> Object
-var prepareCodepoints = function(startCodepoint, names) {
-	return _.compose(
+// prepareCodepoints :: Object -> Object
+var prepareCodepoints = function({ startCodepoint, codepoints, names }) {
+	var codepointsKeys = _.keys(codepoints || {});
+	var newCodepoints = _.compose(
 		_.fromPairs,
-		_.reduce(function(acc, name) {
-			return _.concat(acc, [[name, startCodepoint + acc.length]])
-		}, [])
-	)(names)
+		_.reduce(
+			function(acc, name) {
+				return _.concat(acc, [[name, startCodepoint + acc.length]]);
+			},
+			[]
+		),
+		_.filter(function(name) { return codepointsKeys.indexOf(name) === -1 })
+	)(names);
+
+	return { ...codepoints, ...newCodepoints };
 }
 
 
@@ -144,7 +151,7 @@ var webfont = function(userOptions, done) {
 
 	options.templateOptions = _.defaults(DEFAULT_TEMPLATE_OPTIONS, options.templateOptions)
 
-	options.codepoints = prepareCodepoints(options.startCodepoint, options.names);
+	options.codepoints = prepareCodepoints(options);
 
 
 	// TODO output
